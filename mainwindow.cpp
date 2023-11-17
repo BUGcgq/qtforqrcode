@@ -173,8 +173,12 @@ void MainWindow::on_Bt_generate_clicked()
             QString zeros(zerosToAdd, '0');
             textToEncode = zeros + textToEncode;
         }
-
+        textQrcode = ui->textEdit->toPlainText();
         textToEncode = "https://www.onecharging.com/inc/about?terminalCode=" + textToEncode + "01";
+    }
+    else
+    {
+         textQrcode.clear(); //
     }
     generateQRCode(textToEncode, 240, 240);
 }
@@ -184,19 +188,37 @@ void MainWindow::on_Bt_save_clicked()
     if (!qrcodeImage.isNull()) {
         QString filePath = QFileDialog::getSaveFileName(this, tr("Save QR Code"), "", tr("Images (*.png *.jpg)"));
         if (!filePath.isEmpty()) {
-            // 使用选中的尺寸大小调整图片并创建一个 QPixmap 对象
-            QPixmap resizedImage = QPixmap::fromImage(qrcodeImage.scaled(codeImagesize, codeImagesize, Qt::KeepAspectRatio));
+            // 固定的文字数量
+            const int fixedNumberOfCharacters = 21;
 
-            if (!resizedImage.isNull()) {
-                qDebug() << "Resized image width:" << resizedImage.width() << ", height:" << resizedImage.height();
+            // 计算字体大小
+            int fontSize = codeImagesize / fixedNumberOfCharacters;
 
-                if (!resizedImage.save(filePath)) {
-                    QMessageBox::critical(this, tr("Error"), tr("保存失败，文件路径不能为空"));
-                } else {
-                    QMessageBox::information(this, tr("Success"), tr("二维码保存成功."));
-                }
+            // 创建字体
+            QFont font("Arial", fontSize);
+
+            // 获取文本的矩形区域
+            QRectF textRect = QFontMetricsF(font).boundingRect(QRectF(0, 0, codeImagesize, 0), Qt::AlignHCenter | Qt::TextWordWrap, textQrcode);
+
+            // 计算最终图片的高度
+            int finalHeight = codeImagesize + static_cast<int>(textRect.height());
+            // 使用选中的尺寸大小创建一个 QImage 对象
+            QImage combinedImage(codeImagesize, finalHeight, QImage::Format_ARGB32);
+            combinedImage.fill(Qt::white);  // 填充白色背景
+
+            // 在新图像上添加原始图像
+            QPainter painter(&combinedImage);
+            painter.drawPixmap(0, 0, QPixmap::fromImage(qrcodeImage.scaled(codeImagesize, codeImagesize, Qt::KeepAspectRatio)));
+
+            // 添加文字
+            painter.setFont(font);
+            painter.drawText(0, codeImagesize, codeImagesize, finalHeight - codeImagesize, Qt::AlignHCenter | Qt::TextWordWrap, textQrcode);
+
+            // 保存包含文本的图片
+            if (!combinedImage.save(filePath)) {
+                QMessageBox::critical(this, tr("Error"), tr("保存失败，文件路径不能为空"));
             } else {
-                QMessageBox::warning(this, tr("Warning"), tr("调整图片大小失败."));
+                QMessageBox::information(this, tr("Success"), tr("二维码保存成功."));
             }
         }
     } else {

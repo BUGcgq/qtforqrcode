@@ -52,5 +52,6 @@ private:
     QLabel* versionLabel;  // 软件版本和日期的控件
     QLabel* ideaLabel;     // 技术领先、团队合作、一流服务、客户满意的控件
     QLabel* label_url;     // 链接的控件
+    QString textQrcode;
 };
 #endif // MAINWINDOW_H
